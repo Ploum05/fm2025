@@ -127,4 +127,65 @@ def console_game():
     champ = Championship(teams)
     while champ.has_next():
         h, a = champ.peek()
-        if user in (h, a): choose_line_
+        if user in (h, a): choose_lineup(user)
+        input(f"{h.name} vs {a.name} — Entrée")
+        print("Résultat :", champ.play())
+        show_table(champ, user); print("="*40)
+
+# ---------- Jeu GUI (Tkinter) --------------------------------------
+def gui_game():
+    try:
+        import tkinter as tk
+        from tkinter import ttk, scrolledtext, messagebox
+    except ImportError:
+        print("Tkinter absent – bascule console"); console_game(); return
+
+    clubs = ["Paris FC", "Marseille 13", "Lyonnais", "Monaco"]
+    teams = [create_team(c) for c in clubs]
+    champ = Championship(teams); user: Optional[Team] = None
+
+    root = tk.Tk(); root.title("FM 97/25"); root.geometry("1000x700")
+    start = ttk.Frame(root, padding=20); start.pack(fill="both", expand=True)
+
+    ttk.Label(start, text="Club :").grid(row=0, column=0, sticky="e")
+    club_var = tk.StringVar(value=clubs[0])
+    ttk.Combobox(start, textvariable=club_var, values=clubs,
+                 state="readonly").grid(row=0, column=1, sticky="w")
+
+    ttk.Label(start, text="Prénom coach :").grid(row=1, column=0, sticky="e")
+    e_first = ttk.Entry(start, width=20); e_first.grid(row=1, column=1, sticky="w")
+    ttk.Label(start, text="Nom coach :").grid(row=2, column=0, sticky="e")
+    e_last = ttk.Entry(start, width=20); e_last.grid(row=2, column=1, sticky="w")
+
+    def launch():
+        nonlocal user
+        user = teams[clubs.index(club_var.get())]
+        start.forget(); main.pack(fill="both", expand=True); refresh()
+
+    ttk.Button(start, text="Commencer", command=launch
+               ).grid(row=3, column=0, columnspan=2, pady=10)
+
+    # ---- écran principal
+    main = ttk.Frame(root, padding=20)
+    lbl_next = ttk.Label(main, font=("Arial", 14))
+    lbl_next.grid(row=0, column=0, sticky="w")
+    btn_play = ttk.Button(main, text="Jouer"); btn_play.grid(row=0, column=1, padx=10)
+    log = scrolledtext.ScrolledText(main, width=60, height=20)
+    log.grid(row=1, column=0, columnspan=2, pady=10)
+    lbl_table = ttk.Label(main, font=("Courier", 10), justify="left")
+    lbl_table.grid(row=2, column=0, columnspan=2)
+
+    def lineup_popup():
+        pop = tk.Toplevel(root); pop.title("XI titulaire")
+        vars = [tk.IntVar(value=1 if i < 11 else 0) for i in range(16)]
+        for i, p in enumerate(user.players):
+            ttk.Checkbutton(pop,
+                            text=f"{i+1:02d} {p.name:12} {p.position}",
+                            variable=vars[i]
+                            ).grid(row=i, column=0, sticky="w")
+        def ok():
+            idx = [i for i, v in enumerate(vars) if v.get()==1]
+            if len(idx)!=11 or not any(user.players[i].position=='GK' for i in idx):
+                messagebox.showerror("Erreur","11 joueurs valides et 1 GK")
+                return
+            user.lineup
